@@ -28,7 +28,7 @@ public class HookImpl {
                               xSharedPreferences.reload();
                               int i = 0;
                               if (!xSharedPreferences.getBoolean("power", false)) {
-                                   Log.e("neversleep", "beforeH00kedMethod: power is false");
+                                   XUtils.xDebugLog("neversleep", "beforeH00kedMethod: power is false");
                                    return;
                               }
                               XUtils.xDebugLog("neversleep", "beforeH00kedMethod: power is true");
