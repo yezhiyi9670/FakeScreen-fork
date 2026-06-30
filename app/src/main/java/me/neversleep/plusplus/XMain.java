@@ -78,7 +78,7 @@ public class XMain implements IXposedHookLoadPackage {
                                         if (field.getType().equals(Context.class)) {
                                              field.setAccessible(true);
                                              context = (Context) field.get(obj);
-                                             XUtils.xLog(TAG, "Context found in " + cls + " as " + field.getName());
+                                             XUtils.xDebugLog(TAG, "Context found in " + cls + " as " + field.getName());
                                              break;
                                         }
                                         i++;
@@ -164,23 +164,25 @@ public class XMain implements IXposedHookLoadPackage {
           //目前测试没什么问题
           try {
                XposedHelpers.findAndHookMethod(
-                       "com.android.server.power.PowerManagerService",
-                       loadPackageParam.classLoader,
-                       "updateUserActivitySummaryLocked",
-                       long.class,
-                       int.class,
-                       new XC_MethodHook() {
+                   "com.android.server.power.PowerManagerService",
+                   loadPackageParam.classLoader,
+                   "updateUserActivitySummaryLocked",
+                   long.class,
+                   int.class,
+                   new XC_MethodHook() {
 
-                            @Override
-                            protected void afterHookedMethod(MethodHookParam param) throws Throwable {
-                                 super.afterHookedMethod(param);
-                                 xSharedPreferences.reload();
-                                 XUtils.xDebugLog(TAG, "[updateUserActivitySummaryLocked]get_disable_sleep: disable_sleep is " + xSharedPreferences.getBoolean("disable_sleep", false));
+                        @Override
+                        protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                             super.afterHookedMethod(param);
+                             xSharedPreferences.reload();
+                             XUtils.xDebugLog(TAG, "[updateUserActivitySummaryLocked]get_disable_sleep: disable_sleep is " + xSharedPreferences.getBoolean("disable_sleep", false));
 
-                                 if (!xSharedPreferences.getBoolean("disable_sleep", false)) {
-                                      XUtils.xDebugLog(TAG, "[updateUserActivitySummaryLocked]afterH00kedMethod: disable_sleep is false");
-                                      return;
-                                 }
+                             if (!xSharedPreferences.getBoolean("disable_sleep", false)) {
+                                  XUtils.xDebugLog(TAG, "[updateUserActivitySummaryLocked]afterH00kedMethod: disable_sleep is false");
+                                  return;
+                             }
+
+                             try {
                                  // 修改结果，确保屏幕不会进入 SCREEN_OFF 状态
                                  Object powerManagerService = param.thisObject;
                                  int mUserActivitySummary = (int) XposedHelpers.getObjectField(powerManagerService, "mUserActivitySummary");
@@ -188,7 +190,7 @@ public class XMain implements IXposedHookLoadPackage {
                                  // 如果当前状态是屏幕暗或亮，则不修改
                                  if ((mUserActivitySummary & PowerMangerService.USER_ACTIVITY_SCREEN_BRIGHT) != 0 ||
                                          (mUserActivitySummary & PowerMangerService.USER_ACTIVITY_SCREEN_DIM) != 0) {
-                                      return;
+                                     return;
                                  }
 
                                  // 修改结果为 SCREEN_DIM，确保屏幕不会进入 SCREEN_OFF 状态
@@ -196,8 +198,11 @@ public class XMain implements IXposedHookLoadPackage {
                                  XposedHelpers.setObjectField(powerManagerService, "mUserActivitySummary", mUserActivitySummary);
 
                                  XUtils.xDebugLog(TAG, "Modified mUserActivitySummary to prevent SCREEN_OFF");
-                            }
-                       }
+                             } catch (NoSuchFieldError error) {
+                                 XUtils.xDebugLog(TAG, "disable_sleep updateUserActivitySummaryLocked method fail:", error);
+                             }
+                        }
+                   }
                );
           } catch (Throwable error) {
                XUtils.xLog(TAG, "updateUserActivitySummaryLocked error:", error);
